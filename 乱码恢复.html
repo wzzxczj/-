@@ -1,0 +1,469 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>JSON乱码修复工具</title>
+    <style>
+        :root {
+            --primary: #3498db;
+            --secondary: #2c3e50;
+            --success: #2ecc71;
+            --warning: #f39c12;
+            --danger: #e74c3c;
+            --light: #ecf0f1;
+            --dark: #34495e;
+        }
+        
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        body {
+            background-color: #f5f7fa;
+            color: #333;
+            line-height: 1.6;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+        
+        header {
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            color: white;
+            padding: 25px 30px;
+            text-align: center;
+        }
+        
+        h1 {
+            font-size: 28px;
+            margin-bottom: 10px;
+        }
+        
+        .subtitle {
+            font-size: 16px;
+            opacity: 0.9;
+            max-width: 700px;
+            margin: 0 auto;
+        }
+        
+        .upload-area {
+            padding: 30px;
+            text-align: center;
+            border-bottom: 1px solid #eee;
+        }
+        
+        .file-input-wrapper {
+            position: relative;
+            display: inline-block;
+            margin: 20px 0;
+        }
+        
+        .file-input-wrapper input[type="file"] {
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            opacity: 0;
+            cursor: pointer;
+        }
+        
+        .file-input-label {
+            display: inline-block;
+            padding: 15px 30px;
+            background: var(--primary);
+            color: white;
+            border-radius: 50px;
+            font-size: 18px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 10px rgba(52, 152, 219, 0.3);
+        }
+        
+        .file-input-label:hover {
+            background: #2980b9;
+            transform: translateY(-2px);
+        }
+        
+        .file-name {
+            margin-top: 15px;
+            font-size: 16px;
+            color: var(--dark);
+        }
+        
+        .json-preview {
+            display: flex;
+            flex-wrap: wrap;
+            padding: 0 20px;
+        }
+        
+        .panel {
+            flex: 1;
+            min-width: 300px;
+            padding: 20px;
+            background: var(--light);
+            border-radius: 8px;
+            margin: 10px;
+        }
+        
+        .panel-title {
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid var(--primary);
+            font-size: 20px;
+            color: var(--dark);
+        }
+        
+        .preview-area {
+            height: 300px;
+            overflow: auto;
+            padding: 15px;
+            background: white;
+            border-radius: 6px;
+            border: 1px solid #ddd;
+            font-family: 'Courier New', monospace;
+            white-space: pre-wrap;
+            word-break: break-all;
+            line-height: 1.4;
+        }
+        
+        .controls {
+            padding: 20px;
+            text-align: center;
+        }
+        
+        .btn {
+            padding: 12px 35px;
+            font-size: 16px;
+            border: none;
+            border-radius: 50px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            margin: 0 10px;
+        }
+        
+        .btn-primary {
+            background: var(--success);
+            color: white;
+            box-shadow: 0 4px 10px rgba(46, 204, 113, 0.3);
+        }
+        
+        .btn-primary:hover {
+            background: #27ae60;
+            transform: translateY(-2px);
+        }
+        
+        .btn-secondary {
+            background: var(--secondary);
+            color: white;
+        }
+        
+        .btn-secondary:hover {
+            background: #1a252f;
+        }
+        
+        .status {
+            margin-top: 20px;
+            padding: 12px;
+            border-radius: 6px;
+            text-align: center;
+            font-weight: 500;
+        }
+        
+        .status-success {
+            background: rgba(46, 204, 113, 0.2);
+            color: #27ae60;
+        }
+        
+        .status-error {
+            background: rgba(231, 76, 60, 0.2);
+            color: #c0392b;
+        }
+        
+        .instructions {
+            background: #f8f9fa;
+            border-left: 4px solid var(--primary);
+            padding: 15px 20px;
+            margin: 20px;
+            border-radius: 0 6px 6px 0;
+        }
+        
+        .instructions h3 {
+            margin-bottom: 10px;
+            color: var(--primary);
+        }
+        
+        .instructions ul {
+            margin-left: 20px;
+        }
+        
+        .instructions li {
+            margin-bottom: 8px;
+        }
+        
+        .highlight {
+            color: var(--primary);
+            font-weight: bold;
+        }
+        
+        @media (max-width: 768px) {
+            .json-preview {
+                flex-direction: column;
+            }
+            
+            .panel {
+                min-width: 100%;
+                margin: 10px 0;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>JSON乱码修复工具</h1>
+            <p class="subtitle">修复JSON文件中因双重编码错误导致的乱码，保留拉丁字母不变</p>
+        </header>
+        
+        <div class="instructions">
+            <h3>使用说明</h3>
+            <ul>
+                <li>上传包含乱码的JSON文件（由双重编码错误导致）</li>
+                <li>工具将自动修复类似 <span class="highlight">Ã¥ÂÂÃ§ÂÂµ</span> → <span class="highlight">充电</span> 的乱码</li>
+                <li>修复过程不会影响正常的拉丁字母（a-z, A-Z）、数字和符号</li>
+                <li>修复后可以预览结果并下载修复后的JSON文件</li>
+            </ul>
+        </div>
+        
+        <div class="upload-area">
+            <div class="file-input-wrapper">
+                <label class="file-input-label" id="fileInputLabel">
+                    <i class="fas fa-upload"></i> 选择JSON文件
+                </label>
+                <input type="file" id="fileInput" accept=".json">
+            </div>
+            <div class="file-name" id="fileName">未选择文件</div>
+        </div>
+        
+        <div class="json-preview">
+            <div class="panel">
+                <h2 class="panel-title">原始内容</h2>
+                <div class="preview-area" id="originalPreview">上传JSON文件后，原始内容将显示在这里...</div>
+            </div>
+            
+            <div class="panel">
+                <h2 class="panel-title">修复后内容</h2>
+                <div class="preview-area" id="fixedPreview">修复后的内容将显示在这里...</div>
+            </div>
+        </div>
+        
+        <div class="controls">
+            <button id="processBtn" class="btn btn-primary" disabled>修复乱码</button>
+            <button id="downloadBtn" class="btn btn-secondary" disabled>下载修复后的JSON</button>
+            <div class="status" id="statusArea"></div>
+        </div>
+    </div>
+
+    <script>
+        // 获取DOM元素
+        const fileInput = document.getElementById('fileInput');
+        const fileInputLabel = document.getElementById('fileInputLabel');
+        const fileName = document.getElementById('fileName');
+        const originalPreview = document.getElementById('originalPreview');
+        const fixedPreview = document.getElementById('fixedPreview');
+        const processBtn = document.getElementById('processBtn');
+        const downloadBtn = document.getElementById('downloadBtn');
+        const statusArea = document.getElementById('statusArea');
+        
+        let originalJSON = null;
+        let fixedJSON = null;
+        
+        // 文件选择事件
+        fileInput.addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+            
+            fileName.textContent = `已选择: ${file.name}`;
+            fileInputLabel.textContent = "重新选择文件";
+            
+            const reader = new FileReader();
+            reader.onload = function(event) {
+                try {
+                    const content = event.target.result;
+                    originalJSON = JSON.parse(content);
+                    originalPreview.textContent = JSON.stringify(originalJSON, null, 2);
+                    fixedPreview.textContent = "点击'修复乱码'按钮开始处理...";
+                    processBtn.disabled = false;
+                    downloadBtn.disabled = true;
+                    statusArea.textContent = "文件已加载，点击修复乱码按钮开始处理";
+                    statusArea.className = "status status-success";
+                } catch (error) {
+                    statusArea.textContent = `错误: 文件不是有效的JSON格式 - ${error.message}`;
+                    statusArea.className = "status status-error";
+                    processBtn.disabled = true;
+                }
+            };
+            reader.readAsText(file);
+        });
+        
+        // 双重编码修复函数
+        function fixDoubleEncoding(str) {
+            try {
+                // 第一次修复：Latin1 → UTF-8
+                let firstFixed = "";
+                for (let i = 0; i < str.length; i++) {
+                    const charCode = str.charCodeAt(i);
+                    if (charCode <= 0xff) {
+                        firstFixed += String.fromCharCode(charCode);
+                    }
+                }
+                
+                // 模拟Latin1编码转换为字节数组
+                const bytes = new Uint8Array(firstFixed.length);
+                for (let i = 0; i < firstFixed.length; i++) {
+                    bytes[i] = firstFixed.charCodeAt(i);
+                }
+                
+                // 第一次解码为UTF-8
+                const decoder = new TextDecoder('utf-8');
+                let step1 = decoder.decode(bytes);
+                
+                // 第二次修复：重复相同过程
+                let secondFixed = "";
+                for (let i = 0; i < step1.length; i++) {
+                    const charCode = step1.charCodeAt(i);
+                    if (charCode <= 0xff) {
+                        secondFixed += String.fromCharCode(charCode);
+                    } else {
+                        // 保留非Latin1字符（可能是已经修复的中文字符）
+                        secondFixed += step1[i];
+                    }
+                }
+                
+                // 第二次解码为UTF-8
+                const bytes2 = new Uint8Array(secondFixed.length);
+                for (let i = 0; i < secondFixed.length; i++) {
+                    bytes2[i] = secondFixed.charCodeAt(i);
+                }
+                
+                return decoder.decode(bytes2);
+            } catch (error) {
+                console.error("修复失败:", error);
+                return str; // 返回原字符串
+            }
+        }
+        
+        // 修复JSON中的所有字符串
+        function fixJSON(obj) {
+            if (typeof obj === 'string') {
+                // 如果是纯拉丁字母字符串，不修复
+                if (/^[\x00-\x7F]*$/.test(obj)) {
+                    return obj;
+                }
+                return fixDoubleEncoding(obj);
+            } else if (Array.isArray(obj)) {
+                return obj.map(item => fixJSON(item));
+            } else if (typeof obj === 'object' && obj !== null) {
+                const fixedObj = {};
+                for (const key in obj) {
+                    // 修复键名中的乱码
+                    const fixedKey = fixDoubleEncoding(key);
+                    fixedObj[fixedKey] = fixJSON(obj[key]);
+                }
+                return fixedObj;
+            }
+            return obj;
+        }
+        
+        // 处理按钮事件
+        processBtn.addEventListener('click', function() {
+            if (!originalJSON) {
+                statusArea.textContent = "请先上传JSON文件";
+                statusArea.className = "status status-error";
+                return;
+            }
+            
+            try {
+                processBtn.disabled = true;
+                processBtn.textContent = "处理中...";
+                statusArea.textContent = "正在修复乱码，请稍候...";
+                statusArea.className = "status";
+                
+                // 使用setTimeout确保UI更新
+                setTimeout(() => {
+                    try {
+                        fixedJSON = fixJSON(originalJSON);
+                        fixedPreview.textContent = JSON.stringify(fixedJSON, null, 2);
+                        
+                        // 检查修复是否成功（通过中文字符判断）
+                        const hasChinese = /[\u4E00-\u9FFF]/.test(fixedPreview.textContent);
+                        
+                        if (hasChinese) {
+                            statusArea.textContent = "修复成功！修复后的JSON包含中文字符";
+                            statusArea.className = "status status-success";
+                            downloadBtn.disabled = false;
+                        } else {
+                            statusArea.textContent = "完成处理，但未检测到中文字符 - 可能是没有需要修复的乱码";
+                            statusArea.className = "status";
+                            downloadBtn.disabled = false;
+                        }
+                    } catch (error) {
+                        statusArea.textContent = `处理过程中出错: ${error.message}`;
+                        statusArea.className = "status status-error";
+                    }
+                    
+                    processBtn.disabled = false;
+                    processBtn.textContent = "修复乱码";
+                }, 100);
+            } catch (error) {
+                statusArea.textContent = `处理过程中出错: ${error.message}`;
+                statusArea.className = "status status-error";
+                processBtn.disabled = false;
+                processBtn.textContent = "修复乱码";
+            }
+        });
+        
+        // 下载按钮事件
+        downloadBtn.addEventListener('click', function() {
+            if (!fixedJSON) {
+                statusArea.textContent = "没有可下载的内容，请先处理文件";
+                statusArea.className = "status status-error";
+                return;
+            }
+            
+            try {
+                const jsonStr = JSON.stringify(fixedJSON, null, 2);
+                const blob = new Blob([jsonStr], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'fixed_json_' + new Date().toISOString().slice(0, 19).replace(/[-:T]/g, '') + '.json';
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+                
+                statusArea.textContent = "文件已下载！";
+                statusArea.className = "status status-success";
+            } catch (error) {
+                statusArea.textContent = `下载失败: ${error.message}`;
+                statusArea.className = "status status-error";
+            }
+        });
+    </script>
+</body>
+</html>
